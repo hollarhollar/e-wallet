@@ -1,0 +1,50 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- 'main'
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+  solution: '**/*.sln'
+  project: '**/*.csproj'
+
+steps:
+  - task: NuGetToolInstaller@1
+    name: 'NuGetToolInstaller'
+    inputs: 
+      versionSpec: '4.x'
+    displayName: 'NuGet tool installer'
+
+  - task: NuGetCommand@2
+    name: 'NuGetRestore'
+    displayName: 'NuGet restore packages'
+    inputs:
+      command: 'restore'
+      restoreSolution: '$(solution)'
+      feedsToUse: 'select'
+
+  - task: VSBuild@1
+    inputs:
+      solution: '$(solution)'
+      msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactStagingDirectory)"'
+      platform: '$(buildPlatform)'
+      configuration: '$(buildConfiguration)'
+  - task: VSTest@2
+    inputs:
+      platform: '$(buildPlatform)'
+      configuration: '$(buildConfiguration)'
+
+  - task: PublishBuildArtifacts@1
+    name: 'PublishBuildArtifacts'
+    displayName: 'Publish build artifacts'
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: 'AzureTestProject'
+      publishLocation: 'Container'      
