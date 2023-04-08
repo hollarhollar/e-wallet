@@ -1,0 +1,34 @@
+{
+  "name": "jvectormap",
+  "title": "jVectorMap",
+  "description": "jQuery plugin for embedding vector maps with reach API and methods for data visualization to the web-pages.",
+  "keywords": [
+    "map",
+    "vector",
+    "world",
+    "usa",
+    "choropleth"
+  ],
+  "version": "2.0.4",
+  "author": {
+    "name": "Kirill Lebedev",
+    "email" : "echo.bjornd@gmail.com"
+  },
+  "licenses": [
+    {
+      "type": "AGPL",
+      "url": "https://www.gnu.org/copyleft/gpl.html"
+    },
+    {
+      "type": "Commercial",
+      "url": "https://www.binpress.com/license/read/id/3085/app/2122"
+    }
+  ],
+  "bugs": "https://github.com/bjornd/jvectormap/issues",
+  "homepage": "https://jvectormap.com",
+  "docs": "https://jvectormap.com/documentation/",
+  "download": "https://jvectormap.com/download/",
+  "dependencies": {
+    "jquery": ">=1.5"
+  }
+}

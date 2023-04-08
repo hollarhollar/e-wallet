@@ -1,0 +1,5 @@
+date	size'/'remotesize	flags(request:Update,Range state:File response:Modified,Chunked,gZipped)	statuscode	status ('servermsg')	MIME	Etag|Date	URL	localfile	(from URL)
+13:06:05	24180/24180	---MC-	200	added ('OK')	text/html	date:Thu,%2027%20Sep%202018%2007:36:03%20GMT	https://hq1.appsflyer.com/auth/login	E:/test/hq1.appsflyer.com/auth/login.html	(from )
+13:06:06	26/26	---M--	200	added ('OK')	text/plain	date:Thu,%2027%20Sep%202018%2007:36:05%20GMT	https://hq1.appsflyer.com/robots.txt		(from )
+13:06:11	102830/102830	---M--	200	added ('OK')	text/css	etag:%22db6609eb846c837d9af3ca7a82f532dd%22	https://cdn.appsflyer.com/af-statics/bouncer/login.min.css	E:/test/cdn.appsflyer.com/af-statics/bouncer/login.min.css	(from https://hq1.appsflyer.com/auth/login)
+13:06:13	12227/12227	---M--	200	added ('OK')	application/javascript	date:Thu,%2027%20Sep%202018%2007:36:10%20GMT	https://apis.google.com/js/api:client.js	E:/test/apis.google.com/js/api_client.js	(from https://hq1.appsflyer.com/auth/login)

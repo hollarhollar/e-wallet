@@ -1,0 +1,241 @@
+USE [EIRS_WALLET]
+GO
+/****** Object:  StoredProcedure [dbo].[uspValidateLogin]    Script Date: 1/12/2021 10:04:03 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+/*
+
+Description     : This Procedure is used for for validate use on the basis of  mobileno and also check the syncount. 
+				  It Validate to ReLogin at App. and We always get (Synccount+1) Value .
+
+Developer       : Avanish Kumar Rathour
+Changed By      : Avanish kumar Rathour
+Created Date    : 20-Dec-2019
+Last Updated At : 09-Jan-2020
+
+exec uspValidateLogin @chrMobileNo=N'98787943902',@chrPassword=N'test',@chrDeviceId=N'abc',
+@chrIPAdr=N'192.168.1.1',@SyncCnt=1
+
+--CREATE OR ALTER PROCEDURE [dbo].[uspValidateLogin]
+*/
+
+ALTER PROCEDURE [dbo].[uspValidateLogin]
+(@chrMobileNo VARCHAR(50), 
+ @chrPassword VARCHAR(100), 
+ @chrDeviceId VARCHAR(100), 
+ @chrIPAdr    VARCHAR(50), 
+ @SyncCnt     INT--, 
+)
+AS
+     SET NOCOUNT ON;
+     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+    BEGIN
+        DECLARE @RegId INT;
+        DECLARE @SyncCount INT;
+        SELECT @RegId = reg.Id, 
+               @SyncCount = reg.SyncCount
+        FROM dbo.oyo_Registration reg WITH(NOLOCK)
+		Inner join oyo_user_types oyusr WITH(NOLOCK) on reg.type_code = oyusr.type_code
+        WHERE reg.mobile_no = @chrMobileNo
+              AND reg.STATUS = 1
+			  AND LTRIM(RTRIM(oyusr.description))='Collector';
+        IF ISNULL(@RegId, 0) = 0
+            BEGIN
+                SELECT NULL AS TokenId, 
+                       NULL AS MobileNo, 
+                       NULL AS FName, 
+                       NULL AS LName, 
+                       NULL AS Sex, 
+                       NULL AS DateOfBirth, 
+                       NULL AS Designation, 
+                       NULL AS [Address], 
+                       NULL AS MappingID, 
+                       NULL AS EncodedDate, 
+                       NULL AS ModifiedDate, 
+                       NULL AS EmailAdr, 
+                       NULL AS STATUS, 
+                       NULL AS LGA, 
+                       NULL AS LGAID, 
+                       NULL AS EntityId, 
+                       NULL AS TypeCode, 
+                       NULL AS BeatCode, 
+                       NULL AS ModifiedBy, 
+                       NULL AS EncodedBy;
+                SELECT 'Error: Mob No not Register' AS 'Msg', 
+                       '400' AS StatusCode, 
+                       -1 AS Sts;
+                RETURN;
+        END;
+            ELSE
+            BEGIN
+                DECLARE @UniqueID UNIQUEIDENTIFIER;
+                SET @UniqueID = NEWID();
+        END;
+        SELECT TokenId = CONVERT(VARCHAR(500), @UniqueID), 
+               reg.mobile_no AS MobileNo, 
+               reg.first_name AS FName, 
+               reg.last_name AS LName, 
+               reg.gender AS Sex, 
+               reg.dob AS DateOfBirth, 
+               reg.designation AS Designation, 
+               reg.address AS [Address], 
+               reg.mapid AS MappingID, 
+               reg.created_on AS EncodedDate, 
+               reg.modified_on AS ModifiedDate, 
+               reg.email AS EmailAdr, 
+               reg.STATUS AS STATUS, 
+               lga.lga AS LGA, 
+               lga.lga_id AS LGAID, 
+               reg.EntityId, 
+               reg.type_code AS TypeCode, 
+               reg.beat_code AS BeatCode, 
+               reg.modified_by AS ModifiedBy, 
+               reg.created_by AS EncodedBy
+        INTO #tblregistration
+        FROM dbo.oyo_Registration Reg WITH(NOLOCK)
+             INNER JOIN dbo.Local_Government_Areas lga WITH(NOLOCK) ON reg.lga_id = lga.lga_id
+                                                                       AND reg.STATUS = 1
+        WHERE Reg.id = @RegId
+              AND reg.mobile_no = @chrMobileNo
+              AND Reg.password = @chrPassword;
+        BEGIN TRY
+            IF(@SyncCnt = 1
+               AND @SyncCount = 1)
+                BEGIN
+                    IF NOT EXISTS
+                    (
+                        SELECT 1
+                        FROM dbo.TokenInfo tok
+                        WHERE tok.RegId = @RegId
+                    )
+                        BEGIN
+                            INSERT INTO TokenInfo
+                            (Token, 
+                             DeviceId, 
+                             IpAddress, 
+                             RegId, 
+                             EncodedDate
+                            )
+                                   SELECT @UniqueID, 
+                                          @chrDeviceId, 
+                                          @chrIPAdr, 
+                                          @RegId, 
+                                          GETDATE();
+                    END;
+                        ELSE
+                        IF EXISTS
+                        (
+                            SELECT 1
+                            FROM dbo.oyo_Registration reg WITH(NOLOCK)
+                            WHERE reg.mobile_no = @chrMobileNo
+                                  AND reg.password = @chrPassword
+                                  AND reg.STATUS = 1
+                        )
+                            BEGIN
+                                UPDATE TokenInfo
+                                  SET 
+                                      LastUpdate = GETDATE(), 
+                                      DeviceId = @chrDeviceId, 
+                                      IpAddress = @chrIPAdr, 
+                                      Token = @UniqueID
+                                WHERE RegId = @RegId;
+                        END;
+                    IF EXISTS
+                    (
+                        SELECT 1
+                        FROM #tblregistration
+                    )
+                        BEGIN
+                            SELECT *
+                            FROM #tblregistration;
+                            SELECT 'Records Save Successfully' AS 'Msg', 
+                                   '200' AS StatusCode, 
+                                   1 AS Sts;
+                    END;
+                        ELSE
+                        BEGIN
+                            SELECT NULL AS TokenId, 
+                                   NULL AS MobileNo, 
+                                   NULL AS FName, 
+                                   NULL AS LName, 
+                                   NULL AS Sex, 
+                                   NULL AS DateOfBirth, 
+                                   NULL AS Designation, 
+                                   NULL AS [Address], 
+                                   NULL AS MappingID, 
+                                   NULL AS EncodedDate, 
+                                   NULL AS ModifiedDate, 
+                                   NULL AS EmailAdr, 
+                                   NULL AS STATUS, 
+                                   NULL AS LGA, 
+                                   NULL AS LGAID, 
+                                   NULL AS EntityId, 
+                                   NULL AS TypeCode, 
+                                   NULL AS BeatCode, 
+                                   NULL AS ModifiedBy, 
+                                   NULL AS EncodedBy;
+                            SELECT 'User is Inactive. Contact with Administrator!!!' AS 'Msg', 
+                                   '1100' AS StatusCode, 
+                                   3 AS Sts;
+                    END;
+            END;
+                ELSE
+                BEGIN
+                    UPDATE oyo_Registration
+                      SET 
+                          STATUS = 0
+                    WHERE mobile_no = @chrMobileNo;
+                    SELECT NULL AS TokenId, 
+                           NULL AS MobileNo, 
+                           NULL AS FName, 
+                           NULL AS LName, 
+                           NULL AS Sex, 
+                           NULL AS DateOfBirth, 
+                           NULL AS Designation, 
+                           NULL AS [Address], 
+                           NULL AS MappingID, 
+                           NULL AS EncodedDate, 
+                           NULL AS ModifiedDate, 
+                           NULL AS EmailAdr, 
+                           NULL AS STATUS, 
+                           NULL AS LGA, 
+                           NULL AS LGAID, 
+                           NULL AS EntityId, 
+                           NULL AS TypeCode, 
+                           NULL AS BeatCode, 
+                           NULL AS ModifiedBy, 
+                           NULL AS EncodedBy;
+                    SELECT 'Your Account is supended...' + ERROR_MESSAGE() AS 'Msg', 
+                           '401' AS StatusCode, 
+                           0 AS Sts;
+            END;
+        END TRY
+        BEGIN CATCH
+            SELECT NULL AS TokenId, 
+                   NULL AS MobileNo, 
+                   NULL AS FName, 
+                   NULL AS LName, 
+                   NULL AS Sex, 
+                   NULL AS DateOfBirth, 
+                   NULL AS Designation, 
+                   NULL AS [Address], 
+                   NULL AS MappingID, 
+                   NULL AS EncodedDate, 
+                   NULL AS ModifiedDate, 
+                   NULL AS EmailAdr, 
+                   NULL AS STATUS, 
+                   NULL AS LGA, 
+                   NULL AS LGAID, 
+                   NULL AS EntityId, 
+                   NULL AS TypeCode, 
+                   NULL AS BeatCode, 
+                   NULL AS ModifiedBy, 
+                   NULL AS EncodedBy;
+            SELECT 'Error :' + ERROR_MESSAGE() AS 'Msg', 
+                   '401' AS StatusCode, 
+                   0 AS Sts;
+        END CATCH;
+        DROP TABLE #tblregistration;
+    END;
